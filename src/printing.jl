@@ -1,7 +1,3 @@
-# Aliases
-Base.show(io::IO, ::Type{AbstractArrayOrNum}) = print(io, "AbstractArrayOrNum{T}")
-Base.show(io::IO, ::Type{SysID}) = print(io, "SysID")
-
 # Structs
 function Base.show(io::IO, sys::DiscreteSystem{T}) where {T}
     n = sys.n - sys.p # Number of states in phi

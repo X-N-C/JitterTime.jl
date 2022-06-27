@@ -11,10 +11,6 @@ export LinearSystem,
 abstract type LinearSystem{T} end
 abstract type JTSystem{T} end
 
-# Aliases and their printing
-const SysID = Integer # TODO: Make Unsigned?
-const AbstractArrayOrNum{T} = Union{T, AbstractVecOrMat{T}}
-
 # Extracts the parametric type of an abstract type
 _parametric_type(::LinearSystem{T}) where {T} = T
 _parametric_type(::JTSystem{T}) where {T} = T
@@ -61,7 +57,7 @@ u(t) --> sys --> y(t)
          x(t)
 The state initially has mean value E(x)=0 and covariance V(x)=0.
 
-__Arguments__:
+## Arguments:
 sysid           A unique positive ID number for this system (pick any). Used
                 when referred to from other systems. 
 [A, B, C, D]    A strictly proper, delay-free continuous-time LTI system in
@@ -84,42 +80,32 @@ struct ContinuousSystem{T} <: LinearSystem{T}
     A::Matrix{T}
     B::Matrix{T}
     C::Matrix{T}
-    Rc::Matrix{T} # Noise
-    Qc::Matrix{T} # Cost
+    Rc::Matrix{T} # Noise intensity matrix (continuous)
+    Qc::Matrix{T} # Weight matrix (continuous)
 
-    inputid::Vector{SysID}
+    inputid::Vector{Integer}
     n::Integer # Number of states
     r::Integer # Number of inputs
     p::Integer # Number of outputs
-    id::SysID
+    id::Integer
     resetDynamics::Bool
-
-    # Implicit Constructor
-    function ContinuousSystem(id::SysID,
-                              A::AbstractArrayOrNum,
-                              B::AbstractArrayOrNum,
-                              C::AbstractArrayOrNum,
-                              D::AbstractArrayOrNum,
-                              inputid::Vector{<: SysID}, 
-                              Rc::AbstractArrayOrNum = zeros(size(A, 2), size(A, 2)), 
-                              Qc::AbstractArrayOrNum = zeros(size(A, 2)+size(B, 2), size(A, 2)+size(B, 2)))
-        n, r, p = _init_validation(A, B, C, D, id, inputid)
-        (size(Rc,1),size(Rc,2)) == (n,n) || error("Rc ($(size(Rc,1))*$(size(Rc,2))) should be a n*n matrix; n = #states (= $n)")
-        (size(Qc,1),size(Qc,2)) == (n+r,n+r) || error("Qc ($(size(Qc,1))*$(size(Qc,2))) should be an (n+r)*(n+r) matrix; n = #states (= $n), r = #inputs (= $r)")
-
-        T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D), eltype(Rc), eltype(Qc))
-        new{T}(_to_matrix(T, A), _to_matrix(T, B), _to_matrix(T, C), _to_matrix(T, Rc), _to_matrix(T, Qc), inputid, n, r, p, id, false)
-    end
-    ContinuousSystem(id::SysID,
-                     A::AbstractArrayOrNum,
-                     B::AbstractArrayOrNum,
-                     C::AbstractArrayOrNum,
-                     D::AbstractArrayOrNum,
-                     inputid::SysID, 
-                     Rc::AbstractArrayOrNum = zeros(size(A, 2), size(A, 2)), 
-                     Qc::AbstractArrayOrNum = zeros(size(A, 2)+size(B, 2), size(A, 2)+size(B, 2))) =
-        ContinuousSystem(id, A, B, C, D, SysID[inputid], Rc, Qc)
 end
+
+# Constructors
+function ContinuousSystem(id::S, A, B, C, D, inputid::Vector{S}, 
+                          Rc = zeros(size(A, 2), size(A, 2)), 
+                          Qc = zeros(size(A, 2)+size(B, 2), size(A, 2)+size(B, 2))) where {S <: Integer}
+    n, r, p = _init_validation(A, B, C, D, id, inputid)
+    (size(Rc,1),size(Rc,2)) == (n,n) || error("Rc ($(size(Rc,1))*$(size(Rc,2))) should be a n*n matrix; n = #states (= $n)")
+    (size(Qc,1),size(Qc,2)) == (n+r,n+r) || error("Qc ($(size(Qc,1))*$(size(Qc,2))) should be an (n+r)*(n+r) matrix; n = #states (= $n), r = #inputs (= $r)")
+
+    T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D), eltype(Rc), eltype(Qc))
+    return ContinuousSystem{T}(_to_matrix(T, A), _to_matrix(T, B), _to_matrix(T, C), _to_matrix(T, Rc), _to_matrix(T, Qc), inputid, n, r, p, id, false)
+end
+ContinuousSystem(id::S, A, B, C, D, inputid::S, 
+                 Rc = zeros(size(A, 2), size(A, 2)), 
+                 Qc = zeros(size(A, 2)+size(B, 2), size(A, 2)+size(B, 2))) where {S <: Integer} = 
+    ContinuousSystem(id, A, B, C, D, S[inputid], Rc, Qc)
 
 """
     `sys = DiscreteSystem(sysid, Phi, Gam, C, D, inputid [, Rd, Qc])`
@@ -157,62 +143,49 @@ struct DiscreteSystem{T} <: LinearSystem{T}
     R::Matrix{T}   # Noise
     Qc::Matrix{T}  # Cost
 
-    inputid::Vector{SysID}
+    inputid::Vector{Integer}
     n::Integer # Number of states
     r::Integer # Number of inputs
     p::Integer # Number of outputs
-    id::SysID
-
-    # Constructor
-    function DiscreteSystem(id::SysID,
-                            Phi::AbstractArrayOrNum,
-                            Gam::AbstractArrayOrNum,
-                            C::AbstractArrayOrNum,
-                            D::AbstractArrayOrNum,
-                            inputid::Vector{<: SysID},
-                            R::AbstractArrayOrNum = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1)),
-                            Qc::AbstractArrayOrNum = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1)))
-        n, r, p = _init_validation(Phi, Gam, C, D, id, inputid)
-        (size(R,1),size(R,2)) == (n+p,n+p) || error("R ($(size(R,1))*$(size(R,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
-        (size(Qc,1),size(Qc,2)) == (n+p,n+p) || error("Qc ($(size(Qc,1))*$(size(Qc,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
-
-        Aarray = [Phi zeros(n, p); C zeros(p, p)]
-        Barray = [Gam; D]
-
-        T = promote_type(eltype(Phi), eltype(Gam), eltype(C), eltype(D), eltype(R), eltype(Qc))
-        new{T}(_to_matrix(T, Aarray), _to_matrix(T, Barray), _to_matrix(T, [zeros(p, n) I]), _to_matrix(T, R), _to_matrix(T, Qc), inputid, n+p, r, p, id)
-    end
-    DiscreteSystem(id::SysID,
-                   Phi::AbstractArrayOrNum,
-                   Gam::AbstractArrayOrNum,
-                   C::AbstractArrayOrNum,
-                   D::AbstractArrayOrNum,
-                   inputid::SysID,
-                   R::AbstractArrayOrNum = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1)),
-                   Qc::AbstractArrayOrNum = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1))) =
-        DiscreteSystem(id, Phi, Gam, C, D, SysID[inputid], R, Qc)
-    function DiscreteSystem(id::SysID,
-                            D::AbstractArrayOrNum,
-                            inputid::Vector{<: SysID},
-                            R::AbstractArrayOrNum = zeros(size(D, 1), size(D, 1)),
-                            Qc::AbstractArrayOrNum = zeros(size(D, 1), size(D, 1)))
-        n, r, p = 0, size(D, 2), size(D, 1)
-        (size(R,1),size(R,2)) == (p,p) || error("R ($(size(R,1))*$(size(R,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
-        (size(Qc,1),size(Qc,2)) == (p,p) || error("Qc ($(size(Qc,1))*$(size(Qc,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
-
-        Aarray = zeros(p, p)
-        Barray = D
-
-        T = promote_type(eltype(D), eltype(R), eltype(Qc))
-        new{T}(_to_matrix(T, Aarray), _to_matrix(T, Barray), Matrix{T}(I, p, p), _to_matrix(T, R), _to_matrix(T, Qc), inputid, n+p, r, p, id)
-    end
-    DiscreteSystem(id::SysID,
-                   D::AbstractArrayOrNum,
-                   inputid::SysID,
-                   R::AbstractArrayOrNum = zeros(size(D, 1), size(D, 1)),
-                   Qc::AbstractArrayOrNum = zeros(size(D, 1), size(D, 1))) = 
-        DiscreteSystem(id, D, SysID[inputid], R, Qc)
+    id::Integer
 end
+
+# Constructor
+function DiscreteSystem(id::S, Phi, Gam, C, D, inputid::Vector{S},
+                        R = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1)),
+                        Qc = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1))) where {S <: Integer}
+    n, r, p = _init_validation(Phi, Gam, C, D, id, inputid)
+    (size(R,1),size(R,2)) == (n+p,n+p) || error("R ($(size(R,1))*$(size(R,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
+    (size(Qc,1),size(Qc,2)) == (n+p,n+p) || error("Qc ($(size(Qc,1))*$(size(Qc,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
+
+    Aarray = [Phi zeros(n, p); C zeros(p, p)]
+    Barray = [Gam; D]
+
+    T = promote_type(eltype(Phi), eltype(Gam), eltype(C), eltype(D), eltype(R), eltype(Qc))
+    return DiscreteSystem{T}(_to_matrix(T, Aarray), _to_matrix(T, Barray), _to_matrix(T, [zeros(p, n) I]), _to_matrix(T, R), _to_matrix(T, Qc), inputid, n+p, r, p, id)
+end
+DiscreteSystem(id::S, Phi, Gam, C, D, inputid::S,
+               R = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1)),
+               Qc = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1))) where {S <: Integer} = 
+    DiscreteSystem(id, Phi, Gam, C, D, S[inputid], R, Qc)
+
+function DiscreteSystem(id::S, D, inputid::Vector{S},
+                        R = zeros(size(D, 1), size(D, 1)),
+                        Qc = zeros(size(D, 1), size(D, 1))) where {S <: Integer} 
+    n, r, p = 0, size(D, 2), size(D, 1)
+    (size(R,1),size(R,2)) == (p,p) || error("R ($(size(R,1))*$(size(R,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
+    (size(Qc,1),size(Qc,2)) == (p,p) || error("Qc ($(size(Qc,1))*$(size(Qc,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
+
+    Aarray = zeros(p, p)
+    Barray = D
+
+    T = promote_type(eltype(D), eltype(R), eltype(Qc))
+    return DiscreteSystem{T}(_to_matrix(T, Aarray), _to_matrix(T, Barray), Matrix{T}(I, p, p), _to_matrix(T, R), _to_matrix(T, Qc), inputid, n+p, r, p, id)
+end
+DiscreteSystem(id::S, D, inputid::S,
+               R = zeros(size(D, 1), size(D, 1)),
+               Qc = zeros(size(D, 1), size(D, 1))) where {S <: Integer} = 
+    DiscreteSystem(id, D, S[inputid], R, Qc)
 
 """
     `sys = VersionedSystem(versions)`
@@ -255,11 +228,11 @@ end # function
 Internal ReducedSystem struct
 """
 mutable struct ReducedSystem{T}
-    n::Int64
+    n::Integer
     Ac::Matrix{T}
     Rc::Matrix{T}
     Qc::Matrix{T}
-    indices::Vector{Int64}
+    indices::Vector{Integer}
 
     # Submatrices used in calcC2D
     M112::Vector{Matrix{T}}
@@ -268,7 +241,7 @@ mutable struct ReducedSystem{T}
     M223::Vector{Matrix{T}}
 
     # Sanity checks
-    maxAbsEig::Float64
+    maxAbsEig::Real
     Mnorm::T
 
     # Matrix buffers to reduce allocation time
@@ -345,7 +318,7 @@ Initialize a new JitterTime system.
 """
 mutable struct JitterTimeSystem{T} <: JTSystem{T}
     systems::Vector{LinearSystem}
-    idtoindex::Dict{SysID, Integer}
+    idtoindex::Dict{Integer, Integer}
     J::T
     dJdt::T
     Tsim::T
@@ -367,7 +340,7 @@ mutable struct JitterTimeSystem{T} <: JTSystem{T}
         P   = zeros(T, totstates, totstates)
         m   = zeros(T, totstates)
 
-        new{T}(systems, Dict{SysID, Integer}(), T(0), T(0), T(0), Ad, Rd, m, P)
+        new{T}(systems, Dict{Integer, Integer}(), T(0), T(0), T(0), Ad, Rd, m, P)
     end
 end
 
