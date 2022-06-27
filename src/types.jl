@@ -323,26 +323,26 @@ mutable struct JitterTimeSystem{T} <: JTSystem{T}
     dJdt::T
     Tsim::T
 
-    Ad::Vector{Vector{Matrix{T}}}
-    Rd::Vector{Vector{Matrix{T}}}
+    Ad::Vector{Vector{Matrix{T}}} # TODO: Change this complex structure to individual structs instead
+    Rd::Vector{Vector{Matrix{T}}} # TODO: Change this complex structure to individual structs instead
     m::Vector{T}
     P::Matrix{T}
     
     reduced::ReducedSystem{T}
 
     # Implicit Constructor
-    function JitterTimeSystem(systems::Vector{<: LinearSystem}) 
-        totstates = sum(sys.n for sys in systems)
-        T   = promote_type(_parametric_type.(systems)...)
+    function JitterTimeSystem(T, systems::Vector{S}) where {S <: LinearSystem}
+        totstates::Int64 = sum(sys.n for sys in systems)
 
-        Ad  = [Matrix{T}[] for _ in systems]
-        Rd  = [Matrix{T}[] for _ in systems]
-        P   = zeros(T, totstates, totstates)
-        m   = zeros(T, totstates)
+        Ad::Vector{Vector{Matrix{T}}}  = [Matrix{T}[] for _ in systems]
+        Rd::Vector{Vector{Matrix{T}}}  = [Matrix{T}[] for _ in systems]
+        P                              = zeros(T, totstates, totstates)
+        m                              = zeros(T, totstates)
 
-        new{T}(systems, Dict{Integer, Integer}(), T(0), T(0), T(0), Ad, Rd, m, P)
-    end
+        return new{T}(systems, Dict{Integer, Integer}(), T(0), T(0), T(0), Ad, Rd, m, P)
+    end # Constructor
 end
+JitterTimeSystem(systems::Vector{S}) where {S <: LinearSystem} = JitterTimeSystem(promote_type(_parametric_type.(systems)...), systems)
 
 #= Override get function for structs of type JitterTimeSystem =#
 function Base.getproperty(sys::JitterTimeSystem, s::Symbol)

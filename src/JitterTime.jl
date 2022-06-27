@@ -103,9 +103,9 @@ function _formulate_dynamics!(s::ContinuousSystem{T},
                               Rc::Matrix{T},
                               Qc::Matrix{T},
                               xtou::Matrix,
-                              indices::Vector{UnitRange},
-                              totstates::Integer,
-                              k::Integer) where {T}
+                              indices::Vector{UnitRange{S}},
+                              totstates::S,
+                              k::S) where {T, S <: Integer}
     # Construct Ac matrix
     Ac[indices[k], indices[k]] = s.A
     bix::Int64 = 1
@@ -132,9 +132,9 @@ function _formulate_dynamics!(s::DiscreteSystem{T},
                               Rc::Matrix{T},
                               Qc::Matrix{T},
                               xtou::Matrix,
-                              indices::Vector{UnitRange},
-                              totstates::Integer,
-                              k::Integer) where {T}
+                              indices::Vector{UnitRange{S}},
+                              totstates::S,
+                              k::S) where {T, S <: Integer}
     
     sidx::Int64 = N.idtoindex[s.id]
     push!(N.Ad[sidx], Matrix{T}(I, totstates, totstates))
@@ -158,9 +158,9 @@ function _formulate_dynamics!(s::VersionedSystem{T},
                               Rc::Matrix{T},
                               Qc::Matrix{T},
                               xtou::Matrix,
-                              indices::Vector{UnitRange},
-                              totstates::Integer,
-                              k::Integer) where {T}
+                              indices::Vector{UnitRange{S}},
+                              totstates::S,
+                              k::S) where {T, S <: Integer}
     
     for (v, sver) in enumerate(s.versions)
         sidx::Int64 = N.idtoindex[s.id]
