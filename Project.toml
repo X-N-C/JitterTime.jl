@@ -1,0 +1,11 @@
+name = "JitterTime"
+uuid = "1e62a0ea-68b0-41c4-aa04-5f1eeacd7960"
+authors = ["Max Nyberg Carlsson <max.nyberg_carlsson@control.lth.se>"]
+version = "0.1.0"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+julia = "1.6"
