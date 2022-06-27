@@ -97,7 +97,7 @@ function _connections_correct(s::LinearSystem, N::JTSystem)
 end # function
 
 " Formulate dynamics depending on LinearSystem type "
-function _formulate_dynamics!(s::ContinuousSystem{T},
+function _formulate_dynamics!(s::ContinuousSystem,
                               N::JTSystem{T},
                               Ac::Matrix{T},
                               Rc::Matrix{T},
@@ -126,7 +126,7 @@ function _formulate_dynamics!(s::ContinuousSystem{T},
     # Construct Qc matrix
     Qc .+= xtou'*s.Qc*xtou # Combined cost of state, outputs and inputs
 end # function
-function _formulate_dynamics!(s::DiscreteSystem{T},
+function _formulate_dynamics!(s::DiscreteSystem,
                               N::JTSystem{T},
                               Ac::Matrix{T},
                               Rc::Matrix{T},
@@ -152,7 +152,7 @@ function _formulate_dynamics!(s::DiscreteSystem{T},
     # Construct Qc matrix
     Qc .+= xtou'*s.Qc*xtou # Combined cost of state, outputs and inputs
 end # function
-function _formulate_dynamics!(s::VersionedSystem{T},
+function _formulate_dynamics!(s::VersionedSystem,
                               N::JTSystem{T},
                               Ac::Matrix{T},
                               Rc::Matrix{T},
