@@ -75,6 +75,37 @@ function calcDynamics!(N::JTSystem{T}) where {T}
     return nothing
 end
 
+"""
+    `reset!(N)`
+
+Reset dynamics of JitterTimeSystem
+
+__Arguments__:
+N       The JitterTime system to reset.
+"""
+function reset!(N::JTSystem)
+    # Revert passTime!, execSys!
+    N.J = 0.0
+    N.dJdt = 0.0
+    fill!(N.m, 0.0)
+    fill!(N.P, 0.0)
+    N.Tsim = 0.0
+    return nothing
+end
+function reset!(N::PeriodicJitterTimeSystem{T}) where {T}
+    N.periodicAnalysis = false
+    N.Atot = Matrix{T}(I, size(N.P)...)
+    fill!(N.Rtot, 0.0)
+    fill!(N.dtot, 0.0)
+    fill!(N.Pper, 0.0)
+    fill!(N.mper, 0.0)
+    reset!(N.jtsys)
+end
+
+###########################
+### Auxiliary functions ###
+###########################
+
 " Check that the number of outputs and inputs match for all system connections "
 function _connections_correct(N::JTSystem)
     for s in N.systems
@@ -180,32 +211,5 @@ function _formulate_dynamics!(s::VersionedSystem,
     # Construct Qc matrix
     Qc .+= xtou'*s.Qc*xtou # Combined cost of state, outputs and inputs
 end # function
-
-"""
-    `reset!(N)`
-
-Reset dynamics of JitterTimeSystem
-
-__Arguments__:
-N       The JitterTime system to reset.
-"""
-function reset!(N::JTSystem)
-    # Revert passTime!, execSys!
-    N.J = 0.0
-    N.dJdt = 0.0
-    fill!(N.m, 0.0)
-    fill!(N.P, 0.0)
-    N.Tsim = 0.0
-    return nothing
-end
-function reset!(N::PeriodicJitterTimeSystem{T}) where {T}
-    N.periodicAnalysis = false
-    N.Atot = Matrix{T}(I, size(N.P)...)
-    fill!(N.Rtot, 0.0)
-    fill!(N.dtot, 0.0)
-    fill!(N.Pper, 0.0)
-    fill!(N.mper, 0.0)
-    reset!(N.jtsys)
-end
 
 end # module
