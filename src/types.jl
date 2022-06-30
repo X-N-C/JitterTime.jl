@@ -8,7 +8,18 @@ export LinearSystem,
        FixedIntervalJitterTimeSystem
 
 # Abstract types
+""" 
+    LinearSystem{T} 
+
+Abstract supertype for all linear systems with elements of type `T`.
+"""
 abstract type LinearSystem{T} end
+
+""" 
+    JTSystem{T} 
+
+Abstract supertype for all JitterTime systems with elements of type `T`.
+"""
 abstract type JTSystem{T} end
 
 # Extracts the parametric type of an abstract type
@@ -50,31 +61,27 @@ end # function
 ### Structs ###
 ###############
 """
-    `sys = ContinuousSystem(sysid, A, B, C, D, inputid [, Rc, Qc])`
+    ContinuousSystem(sysid, A, B, C, D, inputid [, Rc, Qc])
 
-Create a continuous-time linear system "sys"
+Create a continuous-time linear system
+```
 u(t) --> sys --> y(t)
          x(t)
-The state initially has mean value E(x)=0 and covariance V(x)=0.
+```
+The state initially has mean value `E(x) = 0` and covariance `V(x) = 0`.
 
 ## Arguments:
-sysid           A unique positive ID number for this system (pick any). Used
-                when referred to from other systems. 
-[A, B, C, D]    A strictly proper, delay-free continuous-time LTI system in
-                state-space or transfer function (or zpk) form. Internally, the
-                system will be converted to state-space form.
-inputid         A vector of input system IDs. The outputs of the corresponding
-                systems will be used as inputs to this system. The number of inputs
-                in this system must equal the total number of outputs in the input
-                systems. An empty vector (or zero) indicates that the system inputs
-                are unconnected.
-
-__Optional arguments__ (assumed zero if missing/empty):
-Rc              The continuous state or input noise intensity matrix. The noise
-                vector is assumed to have the same size as x (for state-space
-                systems).
-Qc              The continuous cost function is E(Int [x(t);u(t)]'*Qc*[x(t);u(t)] dt)
-                (for state-space systems)
+* `sysid`:          A unique positive `Integer` identifier for this system (pick any). Used when referred to from other systems. 
+* `[A, B, C, D]`:   A strictly proper, delay-free continuous-time LTI system in state-space form. 
+* `inputid`:        A vector of input system identifiers. 
+                    The outputs of the corresponding systems will be used as inputs to this system.
+                    The number of inputs in this system must equal the total number of outputs in the input systems.
+                    An empty vector (or zero) indicates that the system inputs are unconnected.
+* `Rc`:             (OPTIONAL) The continuous state or input noise intensity matrix. 
+                    The noise vector is assumed to have the same size as x (for state-space systems).
+                    Default assumed zero.
+* `Qc`:             (OPTIONAL) The continuous cost function is `E(Integral [x(t); u(t)]' * Qc * [x(t); u(t)] dt)` (for state-space systems).
+                    Default assumed zero.
 """
 struct ContinuousSystem{T} <: LinearSystem{T}
     A::Matrix{T}
@@ -108,33 +115,29 @@ ContinuousSystem(id::S, A, B, C, D, inputid::S,
     ContinuousSystem(id, A, B, C, D, S[inputid], Rc, Qc)
 
 """
-    `sys = DiscreteSystem(sysid, Phi, Gam, C, D, inputid [, Rd, Qc])`
+    DiscreteSystem(sysid, Phi, Gam, C, D, inputid [, Rd, Qc])
 
-Create a discrete-time linear system "sys"
+Create a discrete-time linear system
+```
 u(k) --> sys --> y(k)
-         x(k)           
-The state/output initially have mean E([x;y])=0 and covariance V([x;y])=0.
+         x(k)
+```
+The state/output initially has mean value `E([x; y]) = 0` and covariance `V([x; y]) = 0`.
 
-__Arguments__:
-sysid           A unique positive ID number for this system (pick any). Used when
-                referred to from other systems. 
-[Phi, Gam, C,D] A discrete-time LTI system in state-space or transfer function form,
-                or a double/matrix (interpreted as a static gain transfer function).
-                Internally, the system is converted to state-space form, where the
-                held outputs are treated as additional states.
-inputid         A vector of input system IDs. The outputs of the corresponding
-                systems will be used as inputs to this system. The number of inputs
-                in this system must equal the total number of outputs in the input
-                systems.  An empty vector (or zero) indicates that the system inputs
-                are unconnected.
-
-__Optional arguments__ (assumed zero if missing/empty):
-Rd              The discrete state/output/input noise covariance matrix. The noise
-                vector is assumed to have the same size as [x;y] (for state-
-                space systems). Noise is added each time the system is executed.
-Qc              The continuous cost function is E(Int [x(t);y(t)]'*Qc*[x(t);y(t)] dt)
-                (for state-space systems). Note that both x(t) and y(t) are held
-                constant between system executions.
+## Arguments:
+* `sysid`:              A unique positive `Integer` identifier for this system (pick any). Used when referred to from other systems. 
+* `[Phi, Gam, C, D]`:   A discrete-time LTI system in state-space form (if `Phi`, `Gam`, and `C` are missing, interpreted as a static gain).
+* `inputid`:            A vector of input system identifiers. 
+                        The outputs of the corresponding systems will be used as inputs to this system.
+                        The number of inputs in this system must equal the total number of outputs in the input systems.
+                        An empty vector (or zero) indicates that the system inputs are unconnected.
+* `Rd`:                 (OPTIONAL) The discrete state/output/input noise covariance matrix. 
+                        The noise vector is assumed to have the same size as `[x; y]` (for state-space systems).
+                        Noise is added each time the system is executed.
+                        Default assumed zero.
+* `Qc`:                 (OPTIONAL) The continuous cost function is `E(Integral [x(t); u(t)]' * Qc * [x(t); u(t)] dt)` (for state-space systems).
+                        _Note_ that both `x(t)` and `y(t)` are held constant between system executions.
+                        Default assumed zero.
 """
 struct DiscreteSystem{T} <: LinearSystem{T}
     A::Matrix{T}
@@ -188,13 +191,9 @@ DiscreteSystem(id::S, D, inputid::S,
     DiscreteSystem(id, D, S[inputid], R, Qc)
 
 """
-    `sys = VersionedSystem(versions)`
+    VersionedSystem(versions::Vector{DiscreteSystem})
 
-Create a versioned discrete-time linear system "sys"
-
-__Arguments__:
-versions        The multiple versions (in incremental order) of the system to execute
-                Given as a: Vector{DiscreteSystem{T}} where {T}
+Create a versioned discrete-time linear system; the version identifier is given by its index in the input vector.
 """
 struct VersionedSystem{T} <: LinearSystem{T}
     versions::Vector{DiscreteSystem}
@@ -224,9 +223,7 @@ function Base.getproperty(v::VersionedSystem{T}, s::Symbol) where {T}
     return getfield(v, s)
 end # function
 
-"""
-Internal ReducedSystem struct
-"""
+#= Internal ReducedSystem struct =#
 mutable struct ReducedSystem{T}
     n::Integer
     Ac::Matrix{T}
@@ -312,7 +309,7 @@ end
 
 
 """
-    N = JitterTimeSystem(systems::Vector{<: LinearSystem})
+    JitterTimeSystem(systems::Vector{LinearSystem})
 
 Initialize a new JitterTime system.
 """
@@ -360,7 +357,7 @@ function Base.setproperty!(sys::JitterTimeSystem, s::Symbol, x)
 end # function
 
 """
-    N = PeriodicJitterTimeSystem(N::S) where {S <: JTSystem}
+    PeriodicJitterTimeSystem(N::JTSystem)
 
 Initialize a new Periodic JitterTime system.
 """
@@ -406,12 +403,12 @@ function Base.setproperty!(sys::PeriodicJitterTimeSystem, s::Symbol, x)
 end # function
 
 """
-    N = FixedIntervalJitterTimeSystem(N::S, h::Real) where {S <: JitterTimeSystem}
+    FixedIntervalJitterTimeSystem(N::JTSystem, h::Real)
 
 Initialize a new JitterTime system with fixed activation interval h.
 """
 mutable struct FixedIntervalJitterTimeSystem{T} <: JTSystem{T}
-    jtsys::JitterTimeSystem{T} # TODO: Should this be of type JTSystem{T}?
+    jtsys::JTSystem{T} # TODO: Should this be of type JTSystem{T}?
     h::Real
 
     FIAd::Matrix{T}
@@ -419,7 +416,7 @@ mutable struct FixedIntervalJitterTimeSystem{T} <: JTSystem{T}
     FIQd::Matrix{T}
     FIQconst::T
 
-    function FixedIntervalJitterTimeSystem(jtsys::S, h::Real) where {S <: JitterTimeSystem}
+    function FixedIntervalJitterTimeSystem(jtsys::S, h::Real) where {S <: JTSystem}
         h > 0 || error("h must be positive!")
         T = _parametric_type(jtsys)
         tmp_sys = deepcopy(jtsys) # create deepcopy to calculate dynamic on

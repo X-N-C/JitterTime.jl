@@ -11,23 +11,23 @@ export calcDynamics!,
        reset!
 
 """
-    `calcDynamics!(N)`
+    calcDynamics!(N::JTSystem)
 
-Calculate the total system dynamics for the JitterTime system N. 
+Calculate the total system dynamics for the JitterTime system `N`. 
 
-__Arguments__:
-N       The JitterTime system.
+Assuming the state of the total system (including all subsystems) to be x.
 
-__State dynamics__:
-Let the state of the total system (including all subsystems) be x.
+The continuous time evolution follows the equation
+```
+dx(t) = N.Ac x(t)dt + dvc(t)
+```
+where `vc` is continuous white noise with intensity `N.Rc`.
 
-__Continous time evolution__:
-dx(t) = N.Ac x(t)dt + dvc(t)  where vc is continuous white noise with
-                              intensity N.Rc
-
-__Discrete-event evolution when executing system S__:
-x+(t_k) = S.Ad x(t_k) + vd(t_k) where vd is white Gaussian noise with
-                                variance S.Rd
+The discrete-event evolution (when executing system `S`) follows the equation
+```
+x+(t_k) = S.Ad x(t_k) + vd(t_k)
+````
+where vd is white Gaussian noise with variance `S.Rd`.
 """
 function calcDynamics!(N::JTSystem{T}) where {T}
     # Step 1: Count states and inputs and build a system-to-state index mapping
@@ -76,12 +76,9 @@ function calcDynamics!(N::JTSystem{T}) where {T}
 end
 
 """
-    `reset!(N)`
+    reset!(N::JTSystem)
 
-Reset dynamics of JitterTimeSystem
-
-__Arguments__:
-N       The JitterTime system to reset.
+Reset the dynamics of the JitterTime system.
 """
 function reset!(N::JTSystem)
     # Revert passTime!, execSys!
@@ -106,7 +103,7 @@ end
 ### Auxiliary functions ###
 ###########################
 
-" Check that the number of outputs and inputs match for all system connections "
+#= Check that the number of outputs and inputs match for all system connections =#
 function _connections_correct(N::JTSystem)
     for s in N.systems
         if !_connections_correct(s, N)
@@ -127,7 +124,7 @@ function _connections_correct(s::LinearSystem, N::JTSystem)
     return sum(N.systems[N.idtoindex[x]].p for x in s.inputid) == s.r
 end # function
 
-" Formulate dynamics depending on LinearSystem type "
+#= Formulate dynamics depending on LinearSystem type =#
 function _formulate_dynamics!(s::ContinuousSystem,
                               N::JTSystem{T},
                               Ac::Matrix{T},

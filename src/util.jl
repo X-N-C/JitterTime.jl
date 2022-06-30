@@ -1,17 +1,22 @@
-
 """
-    `(Phi, R, Q, Qconst) = calcC2D(a, r, q, h)`
+    calcC2D(N::ReducedSystem, h)`
 
-Calculate the discrete-time (ZOH) version of the continuous
-system 
-                `xdot = a*x + w`
-where the incremental variance of w is r. The cost of the system
-is 
-                `J = integral_0^h (x'*q*x) dt`.
+Calculate the discrete-time (ZOH) version of the continuous system 
+```
+    xdot = a*x + w
+```
+where the incremental variance of `w` is `r`. The cost of the system is 
+```
+    J = integral_0^h (x'*q*x) dt.
+```
 The resulting discrete-time system is
-                `x(n+1) = Phi*x(n) + e(n)`
-where the variance of e(n) is R, and the cost is
-                `J = x'*Q*x + Qconst`.
+```
+    x(n+1) = Phi*x(n) + e(n)
+```
+where the variance of `e(n)` is `R`, and the cost is
+```
+    J = x'*Q*x + Qconst.
+```
 """
 function calcC2D(N::ReducedSystem, dt::Real)
     copy!(N.bufAd, N.Id)
@@ -74,10 +79,10 @@ end
 ######################
 
 """ 
-    `tr(A)`
+    tr(A::Matrix{T})
 
-Return the trace of an arbitrary matrix A.
-The trace sums all the elements on the diagonal of A. 
+Return the trace of an arbitrary matrix `A`.
+The trace sums all the elements on the diagonal of `A`. 
 """
 function tr(A::Matrix{T}) where {T}
     return sum((A)[idx, idx] for idx in 1:size(A, 1))
@@ -114,10 +119,12 @@ end # function
 ######################
 
 """
-    `dlyap(A, Q)`
+    dlyap(A::Matrix{T}, Q)
 
 Compute the solution `X` to the discrete Lyapunov equation
-`AXA' - X + Q = 0`.
+```
+AXA' - X + Q = 0.
+```
 """
 function dlyap(A::Matrix{T}, Q) where {T}
     lhs = kron(A, conj(A))
@@ -130,7 +137,8 @@ end
 ### AUX MATRIX MUL ###
 ######################
 """
-    `_mat_mul!(A, B, C, Z)`
+    _mat_mul!(A, B, C, Z)
+
 Compute the solution to A*B*C and store it in B
 """
 function _mat_mul!(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, Z::Matrix{T}) where {T}
@@ -147,7 +155,8 @@ function _mat_mul!(A::Matrix{T}, B::Matrix{T}, C::Adjoint{T, Matrix{T}}, Z::Matr
 end
 
 """
-    `_mat_mul_add!(A, B, C, D, Z)`
+    _mat_mul_add!(A, B, C, D, Z)
+
 Compute the solution to A*B*C + D and store it in B
 """
 function _mat_mul_add!(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, Z::Matrix{T}) where {T}

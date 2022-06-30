@@ -6,19 +6,15 @@ export execSys!,
 
 
 """
-    `execSys!(N, sysid [, ver])`
+    execSys!(N::JTSystem, sysid::Integer [, ver::Integer])
 
-Execute the discrete-time system 'sysid'
+Execute the discrete-time system with the id 'sysid'. If the executed system is a `VersionedSystem` a version can be specifed.
 
-__Arguments__:
-N           The JitterTime system.
-sysid       ID of the discrete-time system to be updated.
-
-__Optional Arguments__:
-ver         What version to execute (default = 1)
+## Arguments: 
+* `N`:           The JitterTime system.
+* `sysid`:       ID of the discrete-time system to be updated.
+* `ver`:         (OPTIONAL) What version to execute (default = 1)
 """
-execSys!(N::FixedIntervalJitterTimeSystem, sysid::Integer, ver::Integer = 1) = execSys!(getfield(N, :jtsys), sysid, ver)
-
 function execSys!(N::JTSystem, sysid::Integer, ver::Integer = 1)
     sidx = N.idtoindex[sysid]
     N.systems[sidx] isa Union{DiscreteSystem, VersionedSystem} || error("Can only execute (versioned) discrete-time systems.")
@@ -43,14 +39,13 @@ function execSys!(N::JTSystem, sysid::Integer, ver::Integer = 1)
 end
 
 """
-    `passTime!(N, T)`
+    passTime!(N::JTSystem, T::Real)
 
-Let time pass by T units, running all continuous-time systems and accumulating
-cost.
+Let time pass by `T` units, running all continuous-time systems and accumulating cost.
 
-__Arguments__:
-N       The JitterTime system.
-T       The time interval.
+## Arguments: 
+* `N`:          The JitterTime system.
+* `T`:          The time interval to pass
 """
 function passTime!(N::JTSystem, time::Real)
     time >= 0 || error("Time must be positive!")
@@ -88,14 +83,15 @@ function passTime!(N::JTSystem, time::Real)
 end
 
 """
-    `passTime!(N)`
-Let time pass for a system with a fixed interval.
+    passTime!(N::JTSystem)
 
-__Arguments__:
-N       The fixed interval JitterTime system
+Let time pass, running all continuous-time systems and accumulating cost, in a system with a fixed time interval length.
+
+## Arguments: 
+* `N`:          The JitterTime system.
 """
 function passTime!(N::JTSystem)
-    try N.FIQconst catch; error("JTSystem does not contain a FixedIntervalJitterTimeSystem!") end
+    try N.h catch; error("JTSystem does not contain a FixedIntervalJitterTimeSystem!") end
 
     #costm = N.m' * Qd * N.m
     costm = dot(N.m, N.FIQd, N.m)
@@ -127,21 +123,23 @@ function passTime!(N::JTSystem)
 end
 
 """
-    `passTimeUntil!(N, T)`
+    passTimeUntil!(N::JTSystem, T::Real)
 
-Let time pass until N.Tsim = T, running all continuous-time systems and
-accumulating cost.
+Let time pass until `N.Tsim = T`, running all continuous-time systems and accumulating cost.
 
-__Arguments__:
-N       The JitterTime system.
-T       The target time. Must be greater than or equal to N.Tsim.
+## Arguments:
+* `N`:          The JitterTime system.
+* `T`:          The target time. Must be greater than or equal to N.Tsim.
 """
 passTimeUntil!(N::JTSystem, endTime::Real) = passTime!(N, endTime - N.Tsim)
 
 """ 
-    `beginPeriodicAnalysis!(N)`
+    beginPeriodicAnalysis!(N::PeriodicJitterTimeSystem)
 
-Start a periodic covariance analysis. Must be called after calcDynamics!.
+Start a periodic covariance analysis for the PeriodicJitterTimeSystem `N`. Must be called after [`calcDynamics!`](@ref).
+
+## Arguments:
+* `N`:          The JitterTime system.
 """
 function beginPeriodicAnalysis!(N::PeriodicJitterTimeSystem)
     N.periodicAnalysis = true
@@ -149,9 +147,9 @@ function beginPeriodicAnalysis!(N::PeriodicJitterTimeSystem)
 end # function
 
 """ 
-    `endPeriodicAnalysis!(N)`
+    endPeriodicAnalysis!(N::PeriodicJitterTimeSystem)
 
-Start a periodic covariance analysis. Must be called after beginPeriodicAnalysis!
+End a periodic covariance analysis for the PeriodicJitterTimeSystem `N`. Must be called after [`beginPeriodicAnalysis!`](@ref)
 """
 function endPeriodicAnalysis!(N::PeriodicJitterTimeSystem)
     N.periodicAnalysis || error("Periodic analysis not started")
