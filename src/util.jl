@@ -1,5 +1,5 @@
 """
-    calcC2D(N::ReducedSystem, h)`
+    calcC2D(N::ReducedSystem, h)
 
 Calculate the discrete-time (ZOH) version of the continuous system 
 ```
@@ -139,7 +139,7 @@ end
 """
     _mat_mul!(A, B, C, Z)
 
-Compute the solution to A*B*C and store it in B
+Compute the solution to `A*B*C` and store it in `B`.
 """
 function _mat_mul!(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, Z::Matrix{T}) where {T}
     mul!(Z, B, C)
@@ -157,7 +157,7 @@ end
 """
     _mat_mul_add!(A, B, C, D, Z)
 
-Compute the solution to A*B*C + D and store it in B
+Compute the solution to `A*B*C + D` and store it in `B`.
 """
 function _mat_mul_add!(A::Matrix{T}, B::Matrix{T}, C::Matrix{T}, D::Matrix{T}, Z::Matrix{T}) where {T}
     _mat_mul!(A, B, C, Z)
