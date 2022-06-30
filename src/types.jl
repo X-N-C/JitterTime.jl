@@ -71,7 +71,7 @@ u(t) --> sys --> y(t)
 The state initially has mean value `E(x) = 0` and covariance `V(x) = 0`.
 
 ## Arguments:
-* `sysid`:          A unique positive `Integer` identifier for this system (pick any). Used when referred to from other systems. 
+* `sysid`:          A unique positive `Int64` identifier for this system (pick any). Used when referred to from other systems. 
 * `[A, B, C, D]`:   A strictly proper, delay-free continuous-time LTI system in state-space form. 
 * `inputid`:        A vector of input system identifiers. 
                     The outputs of the corresponding systems will be used as inputs to this system.
@@ -90,18 +90,18 @@ struct ContinuousSystem{T} <: LinearSystem{T}
     Rc::Matrix{T} # Noise intensity matrix (continuous)
     Qc::Matrix{T} # Weight matrix (continuous)
 
-    inputid::Vector{Integer}
+    inputid::Vector{Int64}
     n::Integer # Number of states
     r::Integer # Number of inputs
     p::Integer # Number of outputs
-    id::Integer
+    id::Int64
     resetDynamics::Bool
 end
 
 # Constructors
-function ContinuousSystem(id::S, A, B, C, D, inputid::Vector{S}, 
+function ContinuousSystem(id::Int64, A, B, C, D, inputid::Vector{Int64}, 
                           Rc = zeros(size(A, 2), size(A, 2)), 
-                          Qc = zeros(size(A, 2)+size(B, 2), size(A, 2)+size(B, 2))) where {S <: Integer}
+                          Qc = zeros(size(A, 2)+size(B, 2), size(A, 2)+size(B, 2)))
     n, r, p = _init_validation(A, B, C, D, id, inputid)
     (size(Rc,1),size(Rc,2)) == (n,n) || error("Rc ($(size(Rc,1))*$(size(Rc,2))) should be a n*n matrix; n = #states (= $n)")
     (size(Qc,1),size(Qc,2)) == (n+r,n+r) || error("Qc ($(size(Qc,1))*$(size(Qc,2))) should be an (n+r)*(n+r) matrix; n = #states (= $n), r = #inputs (= $r)")
@@ -109,10 +109,10 @@ function ContinuousSystem(id::S, A, B, C, D, inputid::Vector{S},
     T = promote_type(eltype(A), eltype(B), eltype(C), eltype(D), eltype(Rc), eltype(Qc))
     return ContinuousSystem{T}(_to_matrix(T, A), _to_matrix(T, B), _to_matrix(T, C), _to_matrix(T, Rc), _to_matrix(T, Qc), inputid, n, r, p, id, false)
 end
-ContinuousSystem(id::S, A, B, C, D, inputid::S, 
+ContinuousSystem(id::Int64, A, B, C, D, inputid::Int64, 
                  Rc = zeros(size(A, 2), size(A, 2)), 
-                 Qc = zeros(size(A, 2)+size(B, 2), size(A, 2)+size(B, 2))) where {S <: Integer} = 
-    ContinuousSystem(id, A, B, C, D, S[inputid], Rc, Qc)
+                 Qc = zeros(size(A, 2)+size(B, 2), size(A, 2)+size(B, 2))) = 
+    ContinuousSystem(id, A, B, C, D, Int64[inputid], Rc, Qc)
 
 """
     DiscreteSystem(sysid, Phi, Gam, C, D, inputid [, Rd, Qc])
@@ -125,7 +125,7 @@ u(k) --> sys --> y(k)
 The state/output initially has mean value `E([x; y]) = 0` and covariance `V([x; y]) = 0`.
 
 ## Arguments:
-* `sysid`:              A unique positive `Integer` identifier for this system (pick any). Used when referred to from other systems. 
+* `sysid`:              A unique positive `Int64` identifier for this system (pick any). Used when referred to from other systems. 
 * `[Phi, Gam, C, D]`:   A discrete-time LTI system in state-space form (if `Phi`, `Gam`, and `C` are missing, interpreted as a static gain).
 * `inputid`:            A vector of input system identifiers. 
                         The outputs of the corresponding systems will be used as inputs to this system.
@@ -146,17 +146,17 @@ struct DiscreteSystem{T} <: LinearSystem{T}
     R::Matrix{T}   # Noise
     Qc::Matrix{T}  # Cost
 
-    inputid::Vector{Integer}
+    inputid::Vector{Int64}
     n::Integer # Number of states
     r::Integer # Number of inputs
     p::Integer # Number of outputs
-    id::Integer
+    id::Int64
 end
 
 # Constructor
-function DiscreteSystem(id::S, Phi, Gam, C, D, inputid::Vector{S},
+function DiscreteSystem(id::Int64, Phi, Gam, C, D, inputid::Vector{Int64},
                         R = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1)),
-                        Qc = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1))) where {S <: Integer}
+                        Qc = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1)))
     n, r, p = _init_validation(Phi, Gam, C, D, id, inputid)
     (size(R,1),size(R,2)) == (n+p,n+p) || error("R ($(size(R,1))*$(size(R,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
     (size(Qc,1),size(Qc,2)) == (n+p,n+p) || error("Qc ($(size(Qc,1))*$(size(Qc,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
@@ -167,14 +167,14 @@ function DiscreteSystem(id::S, Phi, Gam, C, D, inputid::Vector{S},
     T = promote_type(eltype(Phi), eltype(Gam), eltype(C), eltype(D), eltype(R), eltype(Qc))
     return DiscreteSystem{T}(_to_matrix(T, Aarray), _to_matrix(T, Barray), _to_matrix(T, [zeros(p, n) I]), _to_matrix(T, R), _to_matrix(T, Qc), inputid, n+p, r, p, id)
 end
-DiscreteSystem(id::S, Phi, Gam, C, D, inputid::S,
+DiscreteSystem(id::Int64, Phi, Gam, C, D, inputid::Int64,
                R = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1)),
-               Qc = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1))) where {S <: Integer} = 
-    DiscreteSystem(id, Phi, Gam, C, D, S[inputid], R, Qc)
+               Qc = zeros(size(Phi, 2)+size(C, 1), size(Phi, 2)+size(C, 1))) = 
+    DiscreteSystem(id, Phi, Gam, C, D, Int64[inputid], R, Qc)
 
-function DiscreteSystem(id::S, D, inputid::Vector{S},
+function DiscreteSystem(id::Int64, D, inputid::Vector{Int64},
                         R = zeros(size(D, 1), size(D, 1)),
-                        Qc = zeros(size(D, 1), size(D, 1))) where {S <: Integer} 
+                        Qc = zeros(size(D, 1), size(D, 1)))
     n, r, p = 0, size(D, 2), size(D, 1)
     (size(R,1),size(R,2)) == (p,p) || error("R ($(size(R,1))*$(size(R,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
     (size(Qc,1),size(Qc,2)) == (p,p) || error("Qc ($(size(Qc,1))*$(size(Qc,2))) should be a (n+p)*(n+p) matrix; n = #states (= $n), p = #outputs (= $p).")
@@ -185,10 +185,10 @@ function DiscreteSystem(id::S, D, inputid::Vector{S},
     T = promote_type(eltype(D), eltype(R), eltype(Qc))
     return DiscreteSystem{T}(_to_matrix(T, Aarray), _to_matrix(T, Barray), Matrix{T}(I, p, p), _to_matrix(T, R), _to_matrix(T, Qc), inputid, n+p, r, p, id)
 end
-DiscreteSystem(id::S, D, inputid::S,
+DiscreteSystem(id::Int64, D, inputid::Int64,
                R = zeros(size(D, 1), size(D, 1)),
-               Qc = zeros(size(D, 1), size(D, 1))) where {S <: Integer} = 
-    DiscreteSystem(id, D, S[inputid], R, Qc)
+               Qc = zeros(size(D, 1), size(D, 1))) = 
+    DiscreteSystem(id, D, Int64[inputid], R, Qc)
 
 """
     VersionedSystem(versions::Vector{DiscreteSystem})
@@ -315,7 +315,7 @@ Initialize a new JitterTime system.
 """
 mutable struct JitterTimeSystem{T} <: JTSystem{T}
     systems::Vector{LinearSystem}
-    idtoindex::Dict{Integer, Integer}
+    idtoindex::Dict{Int64, Int64}
     J::T
     dJdt::T
     Tsim::T

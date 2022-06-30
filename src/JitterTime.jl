@@ -37,7 +37,7 @@ function calcDynamics!(N::JTSystem{T}) where {T}
 
     empty!(N.idtoindex)
     merge!(N.idtoindex,
-           Dict(N.systems[x].id => x for x in eachindex(N.systems)))
+           Dict(N.systems[x].id::Int64 => x for x in eachindex(N.systems)))
     length(N.idtoindex) == length(N.systems) || error("Duplicate System ID's")
 
     for i in eachindex(N.systems)
